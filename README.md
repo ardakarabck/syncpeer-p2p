@@ -9,18 +9,6 @@
 - [Team](#team)
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
-- [Team](#team)
-- [License](#license)
-
----
-
-## Team (Fetchleyip kendi github profilinizi eklersiniz)
-
-| Name | Role | GitHub |
-|------|------|--------|
-| [Ömer Bayık] | [e.g. Backend / P2P Logic] | [@username](https://github.com/username) |
-| [Meryem Mahmut] | [e.g. Frontend / UI] | [@username](https://github.com/username) |
-| [Arda Karaböcek] | [e.g. Networking / Testing] | [@ardakarabck](https://github.com/ardakarabck) |
 
 ---
 
