@@ -27,7 +27,9 @@ A peer-to-peer (P2P) file sharing application that allows users to share files d
 
 ---
 
-## Tech Stack (Burayı düzenleyeceğiz)
+## Tech Stack 
+
+(Burayı düzenleyeceğiz)
 
 - **Language:** [e.g. Python / JavaScript / Java]
 - **Framework:** [e.g. Node.js / Flask / Spring]
@@ -35,7 +37,9 @@ A peer-to-peer (P2P) file sharing application that allows users to share files d
 - **UI:** [e.g. React / Tkinter / CLI]
 ---
 
-## Team (Fetchleyip kendi github profilinizi eklersiniz)
+## Team 
+
+(Fetchleyip kendi github profilinizi eklersiniz)
 
 | Name | Role | GitHub |
 |------|------|--------|
@@ -47,20 +51,24 @@ A peer-to-peer (P2P) file sharing application that allows users to share files d
 
 ## Getting Started
 
-### Prerequisites (Burayı düzenleyeceğiz)
+### Prerequisites 
+
+(Burayı düzenleyeceğiz)
 
 - [e.g. Node.js v18+ / Python 3.10+]
 - Git
 
-### Installation (Burayı düzenleyeceğiz)
+### Installation 
+
+(Burayı düzenleyeceğiz)
 
 1. Clone the repository
 
-   git clone https://github.com/[your-username]/[repo-name].git
+   git clone https://github.com/ardakarabck/syncpeer-p2p.git
 
 2. Navigate to the project directory
 
-   cd [repo-name]
+   cd syncpeer-p2p/ 
 
 3. Install dependencies
 
@@ -72,7 +80,8 @@ A peer-to-peer (P2P) file sharing application that allows users to share files d
 
 ---
 
-## Project Structure  (Burayı da düzenleyeceğiz - Ece hoca farklı dosyalar verdi)
+## Project Structure  
+(Burayı da düzenleyeceğiz - Ece hoca farklı dosyalar verdi)
 
 [repo-name]/
 ├── src/
