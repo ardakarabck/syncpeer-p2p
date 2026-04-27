@@ -44,7 +44,7 @@ A peer-to-peer (P2P) file sharing application that allows users to share files d
 | Name | Role | GitHub |
 |------|------|--------|
 | [Ömer Bayık] | [e.g. Backend / P2P Logic] | [@username](https://github.com/username) |
-| [Meryem Mahmut] | [e.g. Frontend / UI] | [@username](https://github.com/MXRI3) |
+| [Meryem Mahmut] | [e.g. Frontend / UI] | [@MXRI3](https://github.com/MXRI3) |
 | [Arda Karaböcek] | [e.g. Networking / Testing] | [@ardakarabck](https://github.com/ardakarabck) |
 
 ---
