@@ -29,12 +29,10 @@ A peer-to-peer (P2P) file sharing application that allows users to share files d
 
 ## Tech Stack 
 
-(Burayı düzenleyeceğiz)
-
-- **Language:** [Python / JavaScript / Java]
-- **Framework:** [e.g. Node.js / Flask / Spring]
-- **Protocol:** [e.g. WebRTC / TCP Sockets / BitTorrent protocol]
-- **UI:** [e.g. React / Tkinter / CLI]
+- **Language:** Python
+- **Framework:** Standard Library only (uses socket, threading, json, base64)
+- **Protocol:** TCP Sockets (port 6001 for transfers) / UDP Broadcast (port 6000 for announcements)
+- **UI:** CLI(Command Line Interface)
 ---
 
 ## Team 
@@ -53,14 +51,11 @@ A peer-to-peer (P2P) file sharing application that allows users to share files d
 
 ### Prerequisites 
 
-(Burayı düzenleyeceğiz)
-
-- [e.g. Node.js v18+ / Python 3.10+]
+- Python 3.10+
 - Git
+- pyDes library (pip install pyDes)
 
 ### Installation 
-
-(Burayı düzenleyeceğiz)
 
 1. Clone the repository
 
@@ -72,26 +67,20 @@ A peer-to-peer (P2P) file sharing application that allows users to share files d
 
 3. Install dependencies
 
-   [e.g. npm install / pip install -r requirements.txt]
-
-4. Run the application
-
-   [e.g. npm start / python main.py]
+   pip install pyDes
 
 ---
 
 ## Project Structure  
 (Burayı da düzenleyeceğiz - Ece hoca farklı dosyalar verdi)
 
-[repo-name]/
-├── src/
-│   ├── peer/
-│   ├── transfer/
-│   └── ui/
-├── tests/
-├── docs/
-├── README.md
-└── [config file, e.g. package.json]
+syncpeer-p2p
+├── Chunk_Announcer.py
+├── Chunk_Downloader.py
+├── Chunk_Uploader.py
+├── Content_Discovery.py
+├── LICENSE
+└── README.md
 
 ---
 
