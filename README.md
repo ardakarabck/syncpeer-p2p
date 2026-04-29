@@ -74,13 +74,15 @@ A peer-to-peer (P2P) file sharing application that allows users to share files d
 ## Project Structure  
 (Burayı da düzenleyeceğiz - Ece hoca farklı dosyalar verdi)
 
-syncpeer-p2p
-├── Chunk_Announcer.py
-├── Chunk_Downloader.py
-├── Chunk_Uploader.py
-├── Content_Discovery.py
-├── LICENSE
-└── README.md
+```  
+syncpeer-p2p  
+├── Chunk_Announcer.py  
+├── Chunk_Downloader.py  
+├── Chunk_Uploader.py  
+├── Content_Discovery.py  
+├── LICENSE  
+└── README.md  
+```
 
 ---
 
