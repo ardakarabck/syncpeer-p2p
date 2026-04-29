@@ -31,7 +31,7 @@ A peer-to-peer (P2P) file sharing application that allows users to share files d
 
 (Burayı düzenleyeceğiz)
 
-- **Language:** [e.g. Python / JavaScript / Java]
+- **Language:** [Python / JavaScript / Java]
 - **Framework:** [e.g. Node.js / Flask / Spring]
 - **Protocol:** [e.g. WebRTC / TCP Sockets / BitTorrent protocol]
 - **UI:** [e.g. React / Tkinter / CLI]
