@@ -72,7 +72,6 @@ A peer-to-peer (P2P) file sharing application that allows users to share files d
 ---
 
 ## Project Structure  
-(Burayı da düzenleyeceğiz - Ece hoca farklı dosyalar verdi)
 
 ```  
 syncpeer-p2p  
