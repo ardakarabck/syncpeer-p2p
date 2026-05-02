@@ -8,16 +8,16 @@ import math
 # SİSTEM SABİTLERİ (FunctionalSpecification.pdf)
 # ============================================================
 BROADCAST_IP = "192.168.1.255"
-UDP_PORT = 6000  # Req 2.2.0-A: Dinleme portu 6000'dir
-BROADCAST_PERIOD = 8  # Req 2.1.0-B: 8 saniye
-CHUNK_COUNT = 3  # Req 2.1.0-A: Sabit 3 parça[cite: 1]
+UDP_PORT = 6000  #  Dinleme portu 6000'dir
+BROADCAST_PERIOD = 8  #  8 saniye
+CHUNK_COUNT = 3  #  Sabit 3 
 
 class ChunkAnnouncer:
     def __init__(self):
         self.username = ""
         self.hosted_chunks = []
         self.user_log_file = "user_info.txt"
-        self.chunk_dir = "."  # Task 3 için gerekli dizin tanımı[cite: 1]
+        self.chunk_dir = "."  # Task 3 için gerekli dizin tanımı
 
     # ─────────────────────────────────────────────
     # TASK 1 — Req 2.1.0-A: Startup & File Splitting
@@ -31,17 +31,17 @@ class ChunkAnnouncer:
     # Step 5: Print terminal message: state number of chunks created and that
     #         the process is starting to announce these files.
     def startup_and_split(self):
-        # Step 1: Kullanıcı adı girişi[cite: 1]
+        # Step 1: Kullanıcı adı girişi
         self.username = input("Enter your username: ").strip()
         
-        # Step 2: Dosya yolu girişi[cite: 1]
+        # Step 2: Dosya yolu girişi
         file_path = input("Enter the path of the file to host: ").strip()
         
         if not os.path.exists(file_path):
             print(f"Error: File '{file_path}' not found.")
             return False
 
-        # Step 3: Dosyayı 3 parçaya bölme[cite: 1]
+        # Step 3: Dosyayı 3 parçaya bölme
         file_size = os.path.getsize(file_path)
         chunk_size = math.ceil(file_size / CHUNK_COUNT)
         base_name = os.path.basename(file_path).split('.')[0]
@@ -49,7 +49,7 @@ class ChunkAnnouncer:
         with open(file_path, 'rb') as f:
             for i in range(1, CHUNK_COUNT + 1):
                 chunk_data = f.read(chunk_size)
-                # İndeksli isimlendirme (suffix yok)[cite: 1]
+                # İndeksli isimlendirme 
                 chunk_name = f"{base_name}_{i}"
                 
                 with open(chunk_name, 'wb') as chunk_file:
@@ -57,11 +57,11 @@ class ChunkAnnouncer:
                 
                 self.hosted_chunks.append(chunk_name)
 
-        # Step 4: Kullanıcı adını yerel olarak saklama[cite: 1]
+        # Step 4: Kullanıcı adını yerel olarak saklama
         with open(self.user_log_file, "w") as log:
             log.write(self.username)
 
-        # Step 5: Terminal bilgilendirmesi[cite: 1]
+        # Step 5: Terminal bilgilendirmesi
         print(f"\n[System] {len(self.hosted_chunks)} chunks created.")
         print(f"[System] Starting to announce files for user: {self.username}")
         return True
@@ -75,10 +75,10 @@ class ChunkAnnouncer:
     # Step 4: This list feeds directly into the broadcast JSON payload (Task 4).
     def get_hosted_chunks(self):
         """Dizindeki mevcut parça isimlerini okur."""
-        # Belirtilen dizindeki tüm dosyaları oku[cite: 1]
+        # Belirtilen dizindeki tüm dosyaları oku
         all_files = os.listdir(self.chunk_dir)
         
-        # Sadece bizim oluşturduğumuz parçaları (indeks içerenleri) listeye ekle[cite: 1]
+        # Sadece bizim oluşturduğumuz parçaları (indeks içerenleri) listeye ekle
         self.hosted_chunks = [f for f in all_files if "_" in f and "." not in f]
         return self.hosted_chunks
 
@@ -101,40 +101,37 @@ class ChunkAnnouncer:
     # Step 3: Encode JSON string to bytes (UTF-8).
     # Step 4: Send encoded bytes via UDP broadcast socket to 192.168.1.255 on port 6000.
     def start_announcing(self):
-        # Step 1: UDP Soket oluşturma[cite: 1]
+        # Step 1: UDP Soket oluşturma
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            # Step 2: Broadcast seçeneğini etkinleştir[cite: 1]
+            # Step 2: Broadcast seçeneğini etkinleştir[
             s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             
             while True:
                 try:
-                    # Task 3: Güncel parça listesini oku[cite: 1]
+                    # Task 3: Güncel parça listesini oku[
                     chunks_list = self.get_hosted_chunks()
 
-                    # Task 4 Step 1: JSON Sözlüğü (Kritik anahtar isimleri)[cite: 1]
+                    # Task 4 Step 1: JSON Sözlüğü (Kritik anahtar isimleri)
                     payload = {
-                        "username": self.username, # Req 2.1.0-D: Hepsi küçük harf[cite: 1]
-                        "chunks": chunks_list      # Req 2.1.0-D: Hepsi küçük harf[cite: 1]
+                        "username": self.username, #  Hepsi küçük harf]
+                        "chunks": chunks_list      #  Hepsi küçük harf
                     }
                     
-                    # Task 4 Step 2 & 3: Serialize ve Encode[cite: 1]
+                    # Task 4 Step 2 & 3: Serialize ve Encode[
                     message = json.dumps(payload).encode('utf-8')
                     
-                    # Task 2 Step 3 & 4: Gönderim (192.168.1.255:6000)[cite: 1]
+                    # Task 2 Step 3 Gönderim (192.168.1.255:6000)
                     s.sendto(message, (BROADCAST_IP, UDP_PORT))
                     
                     print(f"[{time.strftime('%H:%M:%S')}] Duyuru gönderildi: {payload}")
                     
-                    # Task 2 Step 5: 8 saniye bekle[cite: 1]
+                    # Task 2 Step 5: 8 saniye bekle[
                     time.sleep(BROADCAST_PERIOD)
                     
                 except KeyboardInterrupt:
                     print("\n[SİSTEM] Duyuru durduruldu.")
                     break
 
-# ============================================================
-# ANA ÇALIŞTIRMA BLOĞU
-# ============================================================
 if __name__ == "__main__":
     announcer = ChunkAnnouncer()
     if announcer.startup_and_split():
