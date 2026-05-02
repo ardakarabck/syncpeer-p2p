@@ -8,7 +8,28 @@
 # Step 1: On launch, prompt user to choose one of three options:
 #         "View Contents" | "Download Content" | "History"
 # Step 2: Route to the correct task based on user choice.
-# Step 3: After completing an action, return to the menu (do not terminate).
+# Step 3: After completing an action, return to the menu (do not terminate)
+
+class Chunk_Downloader: 
+    def selectChoice(self):
+        print("Choose an option:\n 1.View Contents\n 2.Download Content \n 3.History\n Enter 'quit' to stop: ")
+        while True:
+        option = input()
+        if option == 'quit':
+            print("Goodbye!")
+            break
+
+        if option not in ('1', '2', '3'):
+            print("Invalid input (1, 2 or 3)\n")
+            continue   # go back to menu immediately
+
+        if option == '1':
+            print("Viewing contents...\n")
+        elif option == '2':
+            print("Downloading contents...\n")
+        elif option == '4':
+            print("Fetching your history...\n")
+        break
 
 # ─────────────────────────────────────────────────────────────────
 # TASK 2 — Req 2.3.0-B: View Contents
@@ -21,6 +42,7 @@
 # Step 4: A content name is included if at least ONE of its chunks appears
 #         in any node in the network — all 3 chunks being present is NOT required.
 # Step 5: Print the deduplicated content name list to console.
+    def viewContent(self):
 
 # ─────────────────────────────────────────────────────────────────
 # TASK 3 — Req 2.3.0-C: Initiate Download
@@ -31,7 +53,7 @@
 #         e.g., "forest.png" → "forest 1", "forest 2", "forest 3"
 # Step 4: Sequentially initiate download procedure for each of the 3 chunks
 #         (Tasks 4–8 below), in order: chunk 1, then 2, then 3.
-
+    def downloadContent(self):
 # ─────────────────────────────────────────────────────────────────
 # TASK 4 — Req 2.3.0-D: Look Up Chunk Owners
 # ─────────────────────────────────────────────────────────────────

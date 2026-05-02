@@ -13,6 +13,7 @@ BROADCAST_PERIOD = 8  #  8 saniye
 CHUNK_COUNT = 3  #  Sabit 3 
 
 class ChunkAnnouncer:
+    # default constructor
     def __init__(self):
         self.username = ""
         self.hosted_chunks = []
@@ -44,6 +45,7 @@ class ChunkAnnouncer:
         # Step 3: Dosyayı 3 parçaya bölme
         file_size = os.path.getsize(file_path)
         chunk_size = math.ceil(file_size / CHUNK_COUNT)
+        # flower.png -> flower
         base_name = os.path.basename(file_path).split('.')[0]
 
         with open(file_path, 'rb') as f:
@@ -100,24 +102,25 @@ class ChunkAnnouncer:
     # Step 2: Serialize dict to JSON string via json.dumps().
     # Step 3: Encode JSON string to bytes (UTF-8).
     # Step 4: Send encoded bytes via UDP broadcast socket to 192.168.1.255 on port 6000.
+    
     def start_announcing(self):
         # Step 1: UDP Soket oluşturma
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            # Step 2: Broadcast seçeneğini etkinleştir[
+            # Step 2: Broadcast seçeneğini etkinleştir
             s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             
             while True:
                 try:
-                    # Task 3: Güncel parça listesini oku[
+                    # Task 3: Güncel parça listesini oku
                     chunks_list = self.get_hosted_chunks()
 
                     # Task 4 Step 1: JSON Sözlüğü (Kritik anahtar isimleri)
                     payload = {
-                        "username": self.username, #  Hepsi küçük harf]
+                        "username": self.username, #  Hepsi küçük harf
                         "chunks": chunks_list      #  Hepsi küçük harf
                     }
                     
-                    # Task 4 Step 2 & 3: Serialize ve Encode[
+                    # Task 4 Step 2 & 3: Serialize ve Encode
                     message = json.dumps(payload).encode('utf-8')
                     
                     # Task 2 Step 3 Gönderim (192.168.1.255:6000)
