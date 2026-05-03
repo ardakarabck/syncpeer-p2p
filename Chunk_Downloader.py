@@ -10,10 +10,31 @@
 # Step 2: Route to the correct task based on user choice.
 # Step 3: After completing an action, return to the menu (do not terminate)
 
-class Chunk_Downloader: 
-    def selectChoice(self):
-        print("Choose an option:\n 1.View Contents\n 2.Download Content \n 3.History\n Enter 'quit' to stop: ")
-        while True:
+import json
+    
+## Global variables ##
+
+Chunk_Dict = JSON_to_dict("content_dict.txt")
+Global_Chunk_Num = 3 # flower_(1,2,3).png
+TCP_PORT = 6001
+
+
+# Diffie-Hellman Key Exchange Parameters #
+DH_p = 907
+DH_g = 7
+
+# Return a dictionary from JSON syntax'd file with error handling
+def JSON_to_dict(filename):
+    try:
+        with open(filename, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Error reading file: {e}")
+        return {}
+
+def selectChoice(self): # TASK 1 (we can create a main function as well)
+    print("Choose an option:\n 1.View Contents\n 2.Download Content \n 3.History\n Enter 'quit' to stop: ")
+    while True:
         option = input()
         if option == 'quit':
             print("Goodbye!")
@@ -25,10 +46,13 @@ class Chunk_Downloader:
 
         if option == '1':
             print("Viewing contents...\n")
+            viewContent()
         elif option == '2':
             print("Downloading contents...\n")
-        elif option == '4':
+            downloadContent()
+        elif option == '3':
             print("Fetching your history...\n")
+            fetchHistory()
         break
 
 # ─────────────────────────────────────────────────────────────────
@@ -42,8 +66,16 @@ class Chunk_Downloader:
 # Step 4: A content name is included if at least ONE of its chunks appears
 #         in any node in the network — all 3 chunks being present is NOT required.
 # Step 5: Print the deduplicated content name list to console.
-    def viewContent(self):
-
+def viewContent(): # TASK 2
+    uniqueContent = {}
+    for i in chunkDict:
+        specificChunk = chunkDict[i][0].split('_')[0] # forest_1.png -> forest
+        if specificChunk not in uniqueContent: # check if "forest" in the uniqueContent 
+            uniqueContent.append(specificChunk)
+    print("Here is the list of chunks: \n")
+    for j in range(len(uniqueContent)):
+        print(f"'{j}') '{uniqueContent[j]}'.png\n")
+    
 # ─────────────────────────────────────────────────────────────────
 # TASK 3 — Req 2.3.0-C: Initiate Download
 # ─────────────────────────────────────────────────────────────────
@@ -53,7 +85,22 @@ class Chunk_Downloader:
 #         e.g., "forest.png" → "forest 1", "forest 2", "forest 3"
 # Step 4: Sequentially initiate download procedure for each of the 3 chunks
 #         (Tasks 4–8 below), in order: chunk 1, then 2, then 3.
-    def downloadContent(self):
+def downloadContent(): # TASK 3, 4, 5, 6
+    chunk_name = input("Choose a chunk to download.. (e.g., forest.png)\n")  # TASK 3 
+    chunks_in_need = []
+    chunk_pure = chunk_name.split('.')[0] # forest.png -> forest
+    for i in range(1,Global_Chunk_Num + 1):
+        chunks_in_need.append(f"{chunk_pure}{i}") # appending forest1, forest2, forest3
+    sec_val = input("Which type of download: unsecure(0) or secure(1) (type only 0/1) : ")
+    
+    
+
+    
+    if sec_val:
+        # create a key for secure download (TASK 6)
+
+
+
 # ─────────────────────────────────────────────────────────────────
 # TASK 4 — Req 2.3.0-D: Look Up Chunk Owners
 # ─────────────────────────────────────────────────────────────────
@@ -62,7 +109,7 @@ class Chunk_Downloader:
 # Step 2: Retrieve the list of usernames who have that chunk.
 # Step 3: Use the username-to-IP dict to resolve the first username to an IP address.
 # Step 4: That IP is the first download attempt target.
-
+    
 # ─────────────────────────────────────────────────────────────────
 # TASK 5 — Req 2.3.0-E: Open TCP Session & Display UI Message
 # ─────────────────────────────────────────────────────────────────
@@ -86,7 +133,7 @@ class Chunk_Downloader:
 # Step 8: Store the derived key for decrypting the chunk received in this TCP session.
 # Step 9: Send chunk request JSON: {"requested secured content": "<chunk_name>"}
 # CRITICAL: JSON key must be exactly "requested secured content".
-
+def create_DH_key:
 # ─────────────────────────────────────────────────────────────────
 # TASK 7 — Req 2.3.0-G: Unsecure Download
 # ─────────────────────────────────────────────────────────────────
@@ -125,7 +172,7 @@ class Chunk_Downloader:
 #         timestamp | chunk name | received from (username) | "RECEIVED"
 # Step 2 (Req L): Also maintain a download log text file in the same directory.
 #         Each entry: timestamp | chunk name | downloaded from IP address.
-
+def fetchHistory:
 # ─────────────────────────────────────────────────────────────────
 # TASK 12 — Req 2.3.0-M: Persist After TCP Session Closes
 # ─────────────────────────────────────────────────────────────────
