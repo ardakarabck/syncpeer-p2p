@@ -82,7 +82,7 @@ def save(d, filename):
         f.write(json.dumps(d))
 
 #task1 
-cD= socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+cD = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 cD.bind(("", PORT))
 
 print("Content Discovery is listening on port 6000")
