@@ -78,9 +78,8 @@ last_wipe= time.time()  #to remember the last time we wiped the content dictiona
 
 # helper function to save a dictionary into a shared text file
 def save(d, filename):
-    f= open(filename, "w")
-    f.write(json.dumps(d))
-    f.close()
+    with open(filename, "w") as f:
+        f.write(json.dumps(d))
 
 #task1 
 cD= socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
