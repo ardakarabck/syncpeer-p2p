@@ -62,4 +62,58 @@
 # Step 3: Also overwrite the shared content dictionary text file with empty/reset state.
 # NOTE: Spec says 1 minute is a coarse estimate; precise per-entry timestamps not required.
 #       Only recently discovered content (within ~last minute) should be visible to user.
+-----------------------------------------------------------------------------------------
+import socket
+import json
+import time
 
+PORT= 6000
+
+# dictionaries to be used by task3,4,and 5
+ip_to_user= {}
+content_dict= {}
+user_to_ip= {}
+
+last_wipe= time.time()  #to remember the last time we wiped the content dictionary
+
+# helper function to save a dictionary into a shared text file
+def save(d, filename):
+    f= open(filename, "w")
+    f.write(json.dumps(d))
+    f.close()
+
+#task1 
+cD= socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+cD.bind(("", PORT))
+
+print("Content Discovery is listening on port 6000")
+
+while True:
+    msg, address= cD.recvfrom(1024)
+    ip= address[0]                                 #task2 
+    msg= msg.decode("utf-8")                  
+    data = json.loads(msg)                    
+    username= data["username"]               
+    chunks= data["chunks"]                      
+
+    ip_to_user[ip]= username                                #task3 
+    save(ip_to_user, "ip_to_user.txt")
+
+    for chunk in chunks:                                          #task4
+        if chunk not in content_dict:
+            content_dict[chunk]= [username]
+        else:
+            if username not in content_dict[chunk]:
+                content_dict[chunk].append(username)
+
+    save(content_dict, "content_dict.txt")
+
+    user_to_ip[username]= ip                         #task5
+    save(user_to_ip, "user_to_ip.txt")
+
+    print(username, ":", ", ".join(chunks))          #task6
+
+    if time.time()- last_wipe>= 60:          #task7
+        content_dict.clear()
+        save(content_dict, "content_dict.txt")
+        last_wipe = time.time()
