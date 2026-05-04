@@ -186,7 +186,7 @@ def viewContent():
             uniqueContent.append(specificChunk)
     print("Here is the list of available content:\n")
     for j in range(len(uniqueContent)):
-        print(f"  {j}) {uniqueContent[j]}.png")
+        print(f"  {j+1}) {uniqueContent[j]}.png")
     print()
 
 # ─────────────────────────────────────────────────────────────────
@@ -205,10 +205,11 @@ def create_DH_key(s):
     Y = int(json.loads(response)["key"])         # their g^Y mod p
 
     # Step 6: compute shared secret = Y^X mod p  (standard DH)
-    shared_int = pow(Y, X, DH_p)
+    shared_secret_int = pow(Y, X, DH_p)
 
     # Step 7: convert shared_int to 8-byte key for DES
-    shared_bytes = shared_int.to_bytes(8, byteorder='big')
+    des_key_string = str(shared_secret_int).zfill(8)[:8]   # e.g. 456 → "00000456" → "00000456"
+    des_key_bytes = des_key_string.encode('utf-8')          # → b"00000456" (exactly 8 bytes)
 
     # Step 8: return derived key
     return shared_bytes
@@ -267,10 +268,14 @@ def downloadContent():
                     data = s.recv(65536)
                     if not data:
                         raise Exception("Empty response")
-                    payload = json.loads(data.decode())
+                    payload = json.loads(data.decode('utf-8'))
                     encrypted_bytes = base64.b64decode(payload["encrypted chunk"])
+                    # Decrypt using pyDes with the exact 8-byte key
                     chunk_bytes = pyDes.des(
-                        des_key, pyDes.ECB, pad=None, padmode=pyDes.PAD_PKCS5
+                        des_key_bytes,
+                        pyDes.ECB,
+                        pad=None,
+                        padmode=pyDes.PAD_PKCS5
                     ).decrypt(encrypted_bytes)
 
                 else:
