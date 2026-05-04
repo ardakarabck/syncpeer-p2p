@@ -215,7 +215,7 @@ def create_DH_key(s):
     return shared_bytes
 
 # ─────────────────────────────────────────────────────────────────
-# TASK 3, 4, 5, 6, 7, 8, 9, 10, 13 — downloadContent
+# TASK 3, 4, 5, 7, 8, 9, 10, 12, 13 — downloadContent
 # ─────────────────────────────────────────────────────────────────
 def downloadContent():
     # TASK 3 — get filename and build chunk list
@@ -324,15 +324,15 @@ def downloadContent():
 # TASK 9 — Merge helper (provided externally, placeholder here)
 # ─────────────────────────────────────────────────────────────────
 def merge(chunk_files, output_name):
-    with open(output_name, "wb") as out:
+    with open(output_name, "wb") as out: # creates a final output file named forest.png 
         for chunk_file in chunk_files:
-            with open(chunk_file, "rb") as f:
+            with open(chunk_file, "rb") as f: # read every forest_i.png files and append them to forest.png and also doesn't delete the chunks as determined in specs 
                 out.write(f.read())
 
 # ─────────────────────────────────────────────────────────────────
 # TASK 1 — Req 2.3.0-A: Startup Menu
 # ─────────────────────────────────────────────────────────────────
-def selectChoice(self): # TASK 1 (we can create a main function as well)
+def selectChoice(): # TASK 1 (we can create a main function as well)
     print("Choose an option:\n 1.View Contents\n 2.Download Content \n 3.History\n Enter 'quit' to stop: ")
     while True:
         option = input("> ")
