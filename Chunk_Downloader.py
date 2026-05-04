@@ -11,13 +11,15 @@
 # Step 3: After completing an action, return to the menu (do not terminate)
 
 import json
-    
+from socket import *
+import datetime
+import base64
+import pyDes
+import random
 ## Global variables ##
 
-Chunk_Dict = JSON_to_dict("content_dict.txt")
 Global_Chunk_Num = 3 # flower_(1,2,3).png
 TCP_PORT = 6001
-
 
 # Diffie-Hellman Key Exchange Parameters #
 DH_p = 907
@@ -32,10 +34,192 @@ def JSON_to_dict(filename):
         print(f"Error reading file: {e}")
         return {}
 
+# ─────────────────────────────────────────────────────────────────
+# TASK 11 — Logging helpers
+# ─────────────────────────────────────────────────────────────────
+def logChunk(chunk_name, username, ip):
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Req K: timestamp | chunk name | username | RECEIVED
+    with open("received_log.txt", "a") as f:
+        f.write(f"{timestamp} | {chunk_name} | {username} | RECEIVED\n")
+    # Req L: timestamp | chunk name | IP address
+    with open("download_log.txt", "a") as f:
+        f.write(f"{timestamp} | {chunk_name} | {ip}\n")
+
+# ─────────────────────────────────────────────────────────────────
+# TASK 11 — Req 2.3.0-K & L: fetchHistory
+# ─────────────────────────────────────────────────────────────────
+def fetchHistory():
+    print("\n--- Received Log ---")
+    try:
+        with open("received_log.txt", "r") as f:
+            print(f.read())
+    except FileNotFoundError:
+        print("No received log found.")
+
+    print("\n--- Download Log ---")
+    try:
+        with open("download_log.txt", "r") as f:
+            print(f.read())
+    except FileNotFoundError:
+        print("No download log found.")
+# ─────────────────────────────────────────────────────────────────
+# TASK 2 — Req 2.3.0-B: View Contents
+# ─────────────────────────────────────────────────────────────────
+def viewContent():
+    Chunk_Dict = JSON_to_dict("content_dict.txt")   # re-read fresh from disk
+    uniqueContent = []                               # fix: was {}, must be a list
+    for chunk_key in Chunk_Dict:
+        specificChunk = chunk_key.split('_')[0]      # forest_1.png -> forest
+        if specificChunk not in uniqueContent:
+            uniqueContent.append(specificChunk)
+    print("Here is the list of available content:\n")
+    for j in range(len(uniqueContent)):
+        print(f"  {j}) {uniqueContent[j]}.png")
+    print()
+
+# ─────────────────────────────────────────────────────────────────
+# TASK 6 — Req 2.3.0-F: Diffie-Hellman Key Exchange
+# ─────────────────────────────────────────────────────────────────
+def create_DH_key(s):
+    # Step 2: generate own private random X
+    X = random.randint(2, DH_p - 2)
+
+    # Step 3: send our public value to uploader
+    public_val = pow(DH_g, X, DH_p)             # g^X mod p
+    s.send(json.dumps({"key": str(public_val)}).encode())
+
+    # Step 4 & 5: receive uploader's public value Y
+    response = s.recv(1024).decode()
+    Y = int(json.loads(response)["key"])         # their g^Y mod p
+
+    # Step 6: compute shared secret = Y^X mod p  (standard DH)
+    shared_int = pow(Y, X, DH_p)
+
+    # Step 7: convert shared_int to 8-byte key for DES
+    shared_bytes = shared_int.to_bytes(8, byteorder='big')
+
+    # Step 8: return derived key
+    return shared_bytes
+
+# ─────────────────────────────────────────────────────────────────
+# TASK 3, 4, 5, 6, 7, 8, 9, 10, 13 — downloadContent
+# ─────────────────────────────────────────────────────────────────
+def downloadContent():
+    # TASK 3 — get filename and build chunk list
+    chunk_name = input("Choose a content to download (e.g., forest.png): \n")
+    chunk_pure = chunk_name.split('.')[0]                    # forest.png -> forest
+    chunks_in_need = []
+    for i in range(1, Global_Chunk_Num + 1):
+        chunks_in_need.append(f"{chunk_pure}_{i}.png")      # ["forest_1.png", "forest_2.png", "forest_3.png"]
+
+    sec_val = input("Which type of download: unsecure(0) or secure(1) (type only 0/1): ")
+
+    # Re-read dictionaries fresh from disk (TASK 4)
+    Chunk_Dict = JSON_to_dict("content_dict.txt")
+    user_to_ip = JSON_to_dict("user_to_ip.txt")
+
+    all_success = True  # track if all 3 chunks downloaded (for TASK 9)
+
+    for chunk in chunks_in_need:
+        # TASK 4 — look up owners of this chunk
+        owners = Chunk_Dict.get(chunk, [])          # e.g. ["alex", "bob"]
+
+        if not owners:
+            print(f"CHUNK {chunk} CANNOT BE DOWNLOADED FROM ONLINE PEERS.")
+            all_success = False
+            continue
+
+        # TASK 8 — try each owner, fallback to next on failure
+        downloaded = False
+        for username in owners:
+            ip = user_to_ip.get(username)
+            if not ip:
+                continue
+
+            try:
+                # TASK 5 — open TCP session
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.connect((ip, TCP_PORT))
+
+                # TASK 5 — UI message before sending
+                print(f"[{datetime.datetime.now()}] Requesting '{chunk}' from '{username}' ({ip})")
+
+                if sec_val == '1':
+                    # TASK 6 — DH key exchange
+                    des_key = create_DH_key(s)
+                    # TASK 6 Step 9 — send secure request
+                    request = json.dumps({"requested secured content": chunk})
+                    s.send(request.encode())
+
+                    # TASK 13 — receive and decrypt
+                    data = s.recv(65536)
+                    if not data:
+                        raise Exception("Empty response")
+                    payload = json.loads(data.decode())
+                    encrypted_bytes = base64.b64decode(payload["encrypted chunk"])
+                    chunk_bytes = pyDes.des(
+                        des_key, pyDes.ECB, pad=None, padmode=pyDes.PAD_PKCS5
+                    ).decrypt(encrypted_bytes)
+
+                else:
+                    # TASK 7 — unsecure request
+                    request = json.dumps({"requested content": chunk})
+                    s.send(request.encode())
+
+                    # receive raw bytes
+                    data = s.recv(65536)
+                    if not data:
+                        raise Exception("Empty response")
+                    chunk_bytes = data
+
+                # Save chunk to file
+                with open(chunk, "wb") as f:
+                    f.write(chunk_bytes)
+
+                print(f"  ✓ '{chunk}' downloaded successfully from '{username}'")
+
+                # TASK 11 — log success
+                logChunk(chunk, username, ip)
+
+                s.close()               # TASK 10 — close socket after each chunk
+                downloaded = True
+                break                   # TASK 8 — success, stop trying other peers
+
+            except Exception as e:
+                # TASK 8 — this peer failed, try next
+                print(f"Chunk {chunk} cannot be downloaded from {username}")
+                try:
+                    s.close()           # TASK 10 — always close even on failure
+                except:
+                    pass
+
+        if not downloaded:
+            # TASK 8 — all peers exhausted for this chunk
+            print(f"CHUNK {chunk} CANNOT BE DOWNLOADED FROM ONLINE PEERS.")
+            all_success = False
+
+    # TASK 9 — merge if all 3 chunks downloaded successfully
+    if all_success:
+        merge(chunks_in_need, chunk_name)
+        print(f"✓ '{chunk_name}' has been downloaded and merged successfully!")
+
+# ─────────────────────────────────────────────────────────────────
+# TASK 9 — Merge helper (provided externally, placeholder here)
+# ─────────────────────────────────────────────────────────────────
+def merge(chunk_files, output_name):
+    with open(output_name, "wb") as out:
+        for chunk_file in chunk_files:
+            with open(chunk_file, "rb") as f:
+                out.write(f.read())
+
+# ─────────────────────────────────────────────────────────────────
+# TASK 1 — Req 2.3.0-A: Startup Menu
+# ─────────────────────────────────────────────────────────────────
 def selectChoice(self): # TASK 1 (we can create a main function as well)
     print("Choose an option:\n 1.View Contents\n 2.Download Content \n 3.History\n Enter 'quit' to stop: ")
     while True:
-        option = input()
+        option = input("> ")
         if option == 'quit':
             print("Goodbye!")
             break
@@ -53,7 +237,14 @@ def selectChoice(self): # TASK 1 (we can create a main function as well)
         elif option == '3':
             print("Fetching your history...\n")
             fetchHistory()
-        break
+        # TASK 12 — return to menu after each action
+        print("\nChoose an option:\n 1. View Contents\n 2. Download Content\n 3. History\n Enter 'quit' to stop: ")   
+
+# ─────────────────────────────────────────────────────────────────
+# Entry point
+# ─────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    selectChoice()
 
 # ─────────────────────────────────────────────────────────────────
 # TASK 2 — Req 2.3.0-B: View Contents
@@ -66,15 +257,6 @@ def selectChoice(self): # TASK 1 (we can create a main function as well)
 # Step 4: A content name is included if at least ONE of its chunks appears
 #         in any node in the network — all 3 chunks being present is NOT required.
 # Step 5: Print the deduplicated content name list to console.
-def viewContent(): # TASK 2
-    uniqueContent = {}
-    for i in chunkDict:
-        specificChunk = chunkDict[i][0].split('_')[0] # forest_1.png -> forest
-        if specificChunk not in uniqueContent: # check if "forest" in the uniqueContent 
-            uniqueContent.append(specificChunk)
-    print("Here is the list of chunks: \n")
-    for j in range(len(uniqueContent)):
-        print(f"'{j}') '{uniqueContent[j]}'.png\n")
     
 # ─────────────────────────────────────────────────────────────────
 # TASK 3 — Req 2.3.0-C: Initiate Download
@@ -85,21 +267,6 @@ def viewContent(): # TASK 2
 #         e.g., "forest.png" → "forest 1", "forest 2", "forest 3"
 # Step 4: Sequentially initiate download procedure for each of the 3 chunks
 #         (Tasks 4–8 below), in order: chunk 1, then 2, then 3.
-def downloadContent(): # TASK 3, 4, 5, 6
-    chunk_name = input("Choose a chunk to download.. (e.g., forest.png)\n")  # TASK 3 
-    chunks_in_need = []
-    chunk_pure = chunk_name.split('.')[0] # forest.png -> forest
-    for i in range(1,Global_Chunk_Num + 1):
-        chunks_in_need.append(f"{chunk_pure}{i}") # appending forest1, forest2, forest3
-    sec_val = input("Which type of download: unsecure(0) or secure(1) (type only 0/1) : ")
-    
-    
-
-    
-    if sec_val:
-        # create a key for secure download (TASK 6)
-
-
 
 # ─────────────────────────────────────────────────────────────────
 # TASK 4 — Req 2.3.0-D: Look Up Chunk Owners
@@ -133,7 +300,7 @@ def downloadContent(): # TASK 3, 4, 5, 6
 # Step 8: Store the derived key for decrypting the chunk received in this TCP session.
 # Step 9: Send chunk request JSON: {"requested secured content": "<chunk_name>"}
 # CRITICAL: JSON key must be exactly "requested secured content".
-def create_DH_key:
+
 # ─────────────────────────────────────────────────────────────────
 # TASK 7 — Req 2.3.0-G: Unsecure Download
 # ─────────────────────────────────────────────────────────────────
@@ -172,7 +339,7 @@ def create_DH_key:
 #         timestamp | chunk name | received from (username) | "RECEIVED"
 # Step 2 (Req L): Also maintain a download log text file in the same directory.
 #         Each entry: timestamp | chunk name | downloaded from IP address.
-def fetchHistory:
+
 # ─────────────────────────────────────────────────────────────────
 # TASK 12 — Req 2.3.0-M: Persist After TCP Session Closes
 # ─────────────────────────────────────────────────────────────────
