@@ -62,7 +62,7 @@
 # Step 3: Also overwrite the shared content dictionary text file with empty/reset state.
 # NOTE: Spec says 1 minute is a coarse estimate; precise per-entry timestamps not required.
 #       Only recently discovered content (within ~last minute) should be visible to user.
------------------------------------------------------------------------------------------
+
 import socket
 import json
 import time
@@ -112,7 +112,7 @@ while True:
 
     print(username, ":", ", ".join(chunks))          #task6
 
-    if time.time()- last_wipe>= 60:          #task7
+    if time.time() - last_wipe>= 60:          #task7
         content_dict.clear()
         save(content_dict, "content_dict.txt")
         last_wipe = time.time()
