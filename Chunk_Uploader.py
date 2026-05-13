@@ -86,4 +86,120 @@
 # ─────────────────────────────────────────────────────────────────
 # Step 1: After TCP session ends (chunk sent, session closed), do NOT terminate.
 # Step 2: Return to the accept() loop (Task 1) and continue listening on port 6001.
+------------------------------------------------------------------------------------
+import socket
+import json
+import time
+import random
+import base64
+import pyDes
 
+PORT= 6001
+P= 907   #diffie-hellman prime
+G= 7     #diffie-hellman generator
+
+
+#helper to load the ip_to_user dict that content discovery saves to file
+def load_ip_to_user():
+    try:
+        with open("ip_to_user.txt", "r") as f:
+            return json.loads(f.read())
+    except:
+        return{}
+
+
+#helper to append one line to the upload log
+def log_sent(chunk_name, recipient):
+    with open("upload_log.txt", "a") as f:
+        ts= time.strftime("%Y-%m-%d %H:%M:%S")
+        f.write(ts + " | " + chunk_name + " | " + recipient + " | SENT\n")
+
+
+#create TCP socket, bind to port 6001, &listen
+cU= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+cU.bind(("", PORT))
+cU.listen(5)
+
+print("Chunk Uploader is listening on port 6001")
+
+while True:
+    #to accept incoming TCP connection
+    conn, address= cU.accept()
+    ip= address[0]
+
+    #lookin up requester's username from the shared dict
+    ip_to_user= load_ip_to_user()
+
+    if ip in ip_to_user:
+        requester= ip_to_user[ip]
+    else:
+        requester= ip
+
+    #to receive and parse json
+    msg= conn.recv(4096).decode("utf-8")
+    data= json.loads(msg)
+
+    #case 1: diffie-hellman key exchange
+    if "key" in data:
+        received= int(data["key"])    #gettin the key sent by downloader
+
+        our_private= random.randint(2, P - 2)
+        our_public= pow(G, our_private, P)
+
+        reply= {"key": str(our_public)}
+        conn.send(json.dumps(reply).encode("utf-8"))
+
+        shared_secret= pow(received, our_private, P)
+        des_key_string= str(shared_secret).zfill(8)[:8]
+        des_key_bytes= des_key_string.encode("utf-8")
+
+        #waiting for the actual secured chunk request on the same connection
+        msg2= conn.recv(4096).decode("utf-8")
+        data2= json.loads(msg2)
+
+        chunk_name= data2["requested secured content"]
+
+        print("Sending", chunk_name, "(secure) to", requester)
+
+        with open(chunk_name, "rb") as f:
+            raw_bytes= f.read()
+
+        encrypted_bytes= pyDes.des(
+            des_key_bytes,
+            pyDes.ECB,
+            pad=None,
+            padmode=pyDes.PAD_PKCS5
+        ).encrypt(raw_bytes)
+
+        encoded_chunk_string= base64.b64encode(encrypted_bytes).decode("utf-8")
+
+        response= {
+            "chunk name": chunk_name,
+            "encrypted chunk": encoded_chunk_string
+        }
+
+        conn.send(json.dumps(response).encode("utf-8"))
+
+        log_sent(chunk_name, requester)
+
+    # case2: unsecure chunk request
+    elif "requested content" in data:
+        chunk_name= data["requested content"]
+
+        print("Sending", chunk_name, "(unsecure) to", requester)
+
+        with open(chunk_name, "rb") as f:
+            raw_bytes= f.read()
+
+        json_safe_string= base64.b64encode(raw_bytes).decode("utf-8")
+
+        response= {
+            "chunk name": chunk_name,
+            "data": json_safe_string
+        }
+
+        conn.send(json.dumps(response).encode("utf-8"))
+
+        log_sent(chunk_name, requester)
+
+    conn.close()
