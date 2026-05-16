@@ -75,37 +75,33 @@ ip_to_user = {}
 content_dict = {}
 user_to_ip = {}
 
-# Thread güvenliği (Thread-safety) için kilit mekanizması
+# Thread-safety (Veri güvenliği) için kilit mekanizması
 dict_lock = threading.Lock()
 
 # helper function to save a dictionary into a shared text file
 def save(d, filename):
-    try:
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(json.dumps(d, ensure_ascii=False, indent=2))
-    except Exception as e:
-        print(f"[File Error] {filename} yazılırken hata oluştu: {e}")
+    with open(filename, "w") as f:
+        f.write(json.dumps(d, indent=2))
 
 # ─────────────────────────────────────────────
-# TASK 7 — Arka Plan Thread Yapılandırması (Wipe Worker)
+# TASK 7 — Arka Plan Zamanlayıcı İşçisi (Wipe Worker)
 # ─────────────────────────────────────────────
 def wipe_content_worker():
-    """Her 60 saniyede bir tetiklenen ve content_dict'i temizleyen arka plan thread'i."""
     global content_dict
     while True:
-        time.sleep(60)  # 60 saniye bekler
-        with dict_lock:  # Veri yarışını (Race Condition) önlemek için kilitler
+        time.sleep(60)  # 60 saniye boyunca arka planda bekler
+        with dict_lock:  # Ana döngü ile dosya çakışmasını engellemek için kilitler
             content_dict.clear()
             save(content_dict, "content_dict.txt")
             print(f"\n[{time.strftime('%H:%M:%S')}] [SYSTEM] Content dictionary wiped (60s timer tick).")
 
-# Task 7 için arka plan daemon thread'ini başlatıyoruz
+# Arka plan thread'ini daemon modunda başlatıyoruz
 wipe_thread = threading.Thread(target=wipe_content_worker, daemon=True)
 wipe_thread.start()
 
-# task1
+# task1 
 cD = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# Port çakışmalarını önlemek adına SO_REUSEADDR aktifleştirildi
+# İşletim sisteminin portu hemen serbest bırakması için SO_REUSEADDR aktifleştirildi
 cD.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 cD.bind(("", PORT))
 
@@ -113,19 +109,19 @@ print("Content Discovery is listening on port 6000")
 
 while True:
     try:
-        msg, address = cD.recvfrom(2048)
+        msg, address = cD.recvfrom(1024)
         ip = address[0]                                 # task2 Step 3
-        msg_decoded = msg.decode("utf-8")                  # task2 Step 1
-        data = json.loads(msg_decoded)                    # task2 Step 2
+        msg = msg.decode("utf-8")                       # task2 Step 1
+        data = json.loads(msg)                          # task2 Step 2
         username = data["username"]               
         chunks = data["chunks"]                      
 
-        # Tüm sözlük yazma operasyonları kilit (Lock) altında güvenle işlenir
+        # Paylaşılan kaynakları (Sözlükler ve Dosyalar) güncellerken kilidi aktif ediyoruz
         with dict_lock:
-            ip_to_user[ip] = username                                # task3
+            ip_to_user[ip] = username                                # task3 
             save(ip_to_user, "ip_to_user.txt")
 
-            for chunk in chunks:                                          # task4
+            for chunk in chunks:                                      # task4
                 if chunk not in content_dict:
                     content_dict[chunk] = [username]
                 else:
@@ -140,10 +136,10 @@ while True:
             print(username, ":", ", ".join(chunks))          # task6
 
     except json.JSONDecodeError:
-        # JSON formatına uymayan yabancı paket hata koruması
+        # Ağdaki yabancı paketlerin JSON yapısını bozamaması için koruma klonozolojisi
         pass
     except KeyError:
-        # Beklenen anahtarları içermeyen paket hata koruması
+        # Şartnameye uymayan eksik verili paket koruması
         pass
     except Exception as e:
-        print(f"[Error] Unexpected loop error: {e}")
+        print(f"[Error] Unexpected exception in main loop: {e}")
