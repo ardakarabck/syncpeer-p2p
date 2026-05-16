@@ -116,3 +116,4 @@ while True:
         content_dict.clear()
         save(content_dict, "content_dict.txt")
         last_wipe = time.time()
+        print("Content dictionary wiped")
