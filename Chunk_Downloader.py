@@ -181,12 +181,12 @@ def viewContent():
     Chunk_Dict = JSON_to_dict("content_dict.txt")   # re-read fresh from disk
     uniqueContent = []                               # fix: was {}, must be a list
     for chunk_key in Chunk_Dict:
-        specificChunk = chunk_key.split('_')[0]      # forest_1.png -> forest
+        specificChunk = chunk_key.split('.')[0]      # forest_1.png -> forest
         if specificChunk not in uniqueContent:
             uniqueContent.append(specificChunk)
     print("Here is the list of available content:\n")
     for j in range(len(uniqueContent)):
-        print(f"  {j+1}) {uniqueContent[j]}.png")
+        print(f"  {j+1}) {uniqueContent[j]}")
     print()
 
 # ─────────────────────────────────────────────────────────────────

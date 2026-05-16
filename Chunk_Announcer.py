@@ -6,7 +6,8 @@ import time
 # ============================================================
 # SİSTEM SABİTLERİ (FunctionalSpecification.pdf)
 # ============================================================
-BROADCAST_IP = "192.168.1.255"
+BROADCAST_IP = "10.252.13.255"
+# BROADCAST_IP = "192.168.1.255"
 UDP_PORT = 6000  # Dinleme portu 6000'dir
 BROADCAST_PERIOD = 8  # 8 saniye
 CHUNK_COUNT = 3  # Sabit 3 
