@@ -2,32 +2,30 @@ import socket
 import os
 import json
 import time
-import math
 
 # ============================================================
 # SİSTEM SABİTLERİ (FunctionalSpecification.pdf)
 # ============================================================
 BROADCAST_IP = "192.168.1.255"
-UDP_PORT = 6000  #  Dinleme portu 6000'dir
-BROADCAST_PERIOD = 8  #  8 saniye
-CHUNK_COUNT = 3  #  Sabit 3 
+UDP_PORT = 6000  # Dinleme portu 6000'dir
+BROADCAST_PERIOD = 8  # 8 saniye
+CHUNK_COUNT = 3  # Sabit 3 
 
 class ChunkAnnouncer:
-    # default constructor
     def __init__(self):
         self.username = ""
         self.hosted_chunks = []
         self.user_log_file = "user_info.txt"
-        self.chunk_dir = "."  # Task 3 için gerekli dizin tanımı
+        self.content_dict_file = "content_dict.txt"  # İçerik sözlüğü dosyası
+        self.chunk_dir = "."  # Klasör okuma için dinamik olarak güncellenecek
 
     # ─────────────────────────────────────────────
-    # TASK 1 — Req 2.1.0-A: Startup & File Splitting
+    # TASK 1 — Req 2.1.0-A: Startup & Folder Reading (Modified)
     # ─────────────────────────────────────────────
     # Step 1: Prompt user to enter their username via terminal input.
-    # Step 2: Prompt user to enter the path/name of the file they will initially host.
-    # Step 3: Call the provided splitting function to divide the file into N-byte chunks.
-    #         Each chunk saved as a separate file with indexed naming (no .png suffix).
-    #         Assume every file always has exactly 3 chunks.
+    # Step 2: Prompt user to enter the path/name of the folder they will initially host.
+    # Step 3: Scan the folder to read existing image files instead of splitting.
+    #         Assume every folder always has exactly 3 chunks/files.
     # Step 4: Store the username locally (write to a local text file or keep in memory).
     # Step 5: Print terminal message: state number of chunks created and that
     #         the process is starting to announce these files.
@@ -35,38 +33,50 @@ class ChunkAnnouncer:
         # Step 1: Kullanıcı adı girişi
         self.username = input("Enter your username: ").strip()
         
-        # Step 2: Dosya yolu girişi
-        file_path = input("Enter the path of the file to host: ").strip()
+        # Step 2: Klasör yolu girişi (Tek dosya yerine resimlerin olduğu klasör)
+        folder_path = input("Enter the path of the folder containing the images (e.g., images): ").strip()
         
-        if not os.path.exists(file_path):
-            print(f"Error: File '{file_path}' not found.")
+        if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
+            print(f"Error: Folder '{folder_path}' not found or is not a directory.")
             return False
 
-        # Step 3: Dosyayı 3 parçaya bölme
-        file_size = os.path.getsize(file_path)
-        chunk_size = math.ceil(file_size / CHUNK_COUNT)
-        # flower.png -> flower
-        base_name = os.path.basename(file_path).split('.')[0]
+        # Task 3'ün doğru dizine bakması için chunk_dir güncelleniyor
+        self.chunk_dir = folder_path
 
-        with open(file_path, 'rb') as f:
-            for i in range(1, CHUNK_COUNT + 1):
-                chunk_data = f.read(chunk_size)
-                # İndeksli isimlendirme 
-                chunk_name = f"{base_name}_{i}"
-                
-                with open(chunk_name, 'wb') as chunk_file:
-                    chunk_file.write(chunk_data)
-                
-                self.hosted_chunks.append(chunk_name)
+        # Step 3: Klasör içindeki dosyaları kontrol etme
+        all_files = [f for f in os.listdir(self.chunk_dir) if os.path.isfile(os.path.join(self.chunk_dir, f)) and not f.startswith('.')]
+        
+        if len(all_files) == 0:
+            print(f"Error: No image files found in '{folder_path}'.")
+            return False
 
         # Step 4: Kullanıcı adını yerel olarak saklama
         with open(self.user_log_file, "w") as log:
             log.write(self.username)
 
         # Step 5: Terminal bilgilendirmesi
-        print(f"\n[System] {len(self.hosted_chunks)} chunks created.")
+        print(f"\n[System] {len(all_files)} chunks/files detected in target folder.")
         print(f"[System] Starting to announce files for user: {self.username}")
         return True
+
+    # ─────────────────────────────────────────────
+    # YARDIMCI METOT: İçerikleri txt'ye kaydetme
+    # ─────────────────────────────────────────────
+    def save_content_dict_to_file(self):
+        """Node'un barındırdığı içerikleri bir dictionary (sözlük) formatında txt dosyasına kaydeder."""
+        content_dict = {
+            "owner": self.username,
+            "directory_path": self.chunk_dir,
+            "total_files_hosted": len(self.hosted_chunks),
+            "contents": self.hosted_chunks,
+            "last_updated": time.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        try:
+            with open(self.content_dict_file, "w", encoding="utf-8") as f:
+                json.dump(content_dict, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"[System Error] Failed to write content dictionary: {e}")
 
     # ─────────────────────────────────────────────
     # TASK 3 — Req 2.1.0-C: Read Hosted Chunk Names from Directory
@@ -76,12 +86,16 @@ class ChunkAnnouncer:
     # Step 3: Collect chunk names into a Python list.
     # Step 4: This list feeds directly into the broadcast JSON payload (Task 4).
     def get_hosted_chunks(self):
-        """Dizindeki mevcut parça isimlerini okur."""
-        # Belirtilen dizindeki tüm dosyaları oku
+        """Dizindeki mevcut parça isimlerini (resimleri) okur ve content_dict.txt'yi günceller."""
+        # Step 1 & 2: Belirtilen dizindeki tüm dosyaları oku
         all_files = os.listdir(self.chunk_dir)
         
-        # Sadece bizim oluşturduğumuz parçaları (indeks içerenleri) listeye ekle
-        self.hosted_chunks = [f for f in all_files if "_" in f and "." not in f]
+        # Step 3: Klasör içindeki gerçek resim dosyalarını listeye ekle
+        self.hosted_chunks = [f for f in all_files if os.path.isfile(os.path.join(self.chunk_dir, f)) and not f.startswith('.')]
+        
+        # Liste güncellendiğinde bunu txt dosyasına sözlük olarak yazdırıyoruz
+        self.save_content_dict_to_file()
+        
         return self.hosted_chunks
 
     # ─────────────────────────────────────────────
@@ -116,8 +130,8 @@ class ChunkAnnouncer:
 
                     # Task 4 Step 1: JSON Sözlüğü (Kritik anahtar isimleri)
                     payload = {
-                        "username": self.username, #  Hepsi küçük harf
-                        "chunks": chunks_list      #  Hepsi küçük harf
+                        "username": self.username.lower().replace("_", ""), 
+                        "chunks": chunks_list      
                     }
                     
                     # Task 4 Step 2 & 3: Serialize ve Encode
@@ -128,7 +142,7 @@ class ChunkAnnouncer:
                     
                     print(f"[{time.strftime('%H:%M:%S')}] Duyuru gönderildi: {payload}")
                     
-                    # Task 2 Step 5: 8 saniye bekle[
+                    # Task 2 Step 5: 8 saniye bekle
                     time.sleep(BROADCAST_PERIOD)
                     
                 except KeyboardInterrupt:
