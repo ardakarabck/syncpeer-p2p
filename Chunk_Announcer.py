@@ -16,7 +16,6 @@ class ChunkAnnouncer:
         self.username = ""
         self.hosted_chunks = []
         self.user_log_file = "user_info.txt"
-        self.content_dict_file = "content_dict.txt"  # İçerik sözlüğü dosyası
         self.chunk_dir = "."  # Klasör okuma için dinamik olarak güncellenecek
 
     # ─────────────────────────────────────────────
@@ -60,25 +59,6 @@ class ChunkAnnouncer:
         return True
 
     # ─────────────────────────────────────────────
-    # YARDIMCI METOT: İçerikleri txt'ye kaydetme
-    # ─────────────────────────────────────────────
-    def save_content_dict_to_file(self):
-        """Node'un barındırdığı içerikleri bir dictionary (sözlük) formatında txt dosyasına kaydeder."""
-        content_dict = {
-            "owner": self.username,
-            "directory_path": self.chunk_dir,
-            "total_files_hosted": len(self.hosted_chunks),
-            "contents": self.hosted_chunks,
-            "last_updated": time.strftime('%Y-%m-%d %H:%M:%S')
-        }
-        
-        try:
-            with open(self.content_dict_file, "w", encoding="utf-8") as f:
-                json.dump(content_dict, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            print(f"[System Error] Failed to write content dictionary: {e}")
-
-    # ─────────────────────────────────────────────
     # TASK 3 — Req 2.1.0-C: Read Hosted Chunk Names from Directory
     # ─────────────────────────────────────────────
     # Step 1: Point to the directory where chunk files are stored.
@@ -86,15 +66,12 @@ class ChunkAnnouncer:
     # Step 3: Collect chunk names into a Python list.
     # Step 4: This list feeds directly into the broadcast JSON payload (Task 4).
     def get_hosted_chunks(self):
-        """Dizindeki mevcut parça isimlerini (resimleri) okur ve content_dict.txt'yi günceller."""
+        """Dizindeki mevcut parça isimlerini (resimleri) okur."""
         # Step 1 & 2: Belirtilen dizindeki tüm dosyaları oku
         all_files = os.listdir(self.chunk_dir)
         
         # Step 3: Klasör içindeki gerçek resim dosyalarını listeye ekle
         self.hosted_chunks = [f for f in all_files if os.path.isfile(os.path.join(self.chunk_dir, f)) and not f.startswith('.')]
-        
-        # Liste güncellendiğinde bunu txt dosyasına sözlük olarak yazdırıyoruz
-        self.save_content_dict_to_file()
         
         return self.hosted_chunks
 
