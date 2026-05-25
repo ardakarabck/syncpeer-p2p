@@ -1,8 +1,3 @@
-import socket
-import json
-import time
-import threading
-
 # ============================================================
 # Content_Discovery Tasks
 # ============================================================
@@ -65,9 +60,11 @@ import threading
 # Step 1: Run a background timer/thread that fires every 60 seconds.
 # Step 2: On each timer tick: clear the content dictionary entirely.
 # Step 3: Also overwrite the shared content dictionary text file with empty/reset state.
-# NOTE: Spec says 1 minute is a coarse estimate; precise per-entry timestamps not required.
-#       Only recently discovered content (within ~last minute) should be visible to user.
 
+import socket
+import json
+import time
+import threading
 PORT = 6000
 
 # dictionaries to be used by task3,4,and 5
@@ -83,9 +80,7 @@ def save(d, filename):
     with open(filename, "w") as f:
         f.write(json.dumps(d, indent=2))
 
-# ─────────────────────────────────────────────
-# TASK 7 — Arka Plan Zamanlayıcı İşçisi (Wipe Worker)
-# ─────────────────────────────────────────────
+
 def wipe_content_worker():
     global content_dict
     while True:
@@ -101,15 +96,14 @@ wipe_thread.start()
 
 # task1 
 cD = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# İşletim sisteminin portu hemen serbest bırakması için SO_REUSEADDR aktifleştirildi
-cD.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+cD.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  
 cD.bind(("", PORT))
 
 print("Content Discovery is listening on port 6000")
 
 while True:
     try:
-        msg, address = cD.recvfrom(1024)
+        msg, address = cD.recvfrom(4096)
         ip = address[0]                                 # task2 Step 3
         msg = msg.decode("utf-8")                       # task2 Step 1
         data = json.loads(msg)                          # task2 Step 2
@@ -135,11 +129,9 @@ while True:
 
             print(username, ":", ", ".join(chunks))          # task6
 
-    except json.JSONDecodeError:
-        # Ağdaki yabancı paketlerin JSON yapısını bozamaması için koruma klonozolojisi
+    except json.JSONDecodeError:           # ignore messages that are not valid JSON
         pass
-    except KeyError:
-        # Şartnameye uymayan eksik verili paket koruması
+    except KeyError:                       # ignore JSON messages that do not have username or chunks
         pass
     except Exception as e:
         print(f"[Error] Unexpected exception in main loop: {e}")
