@@ -72,8 +72,7 @@ ip_to_user = {}
 content_dict = {}
 user_to_ip = {}
 
-# Thread-safety (Veri güvenliği) için kilit mekanizması
-dict_lock = threading.Lock()
+dict_lock = threading.Lock()     # Thread güvenliği için kilit mekanizması
 
 # helper function to save a dictionary into a shared text file
 def save(d, filename):
@@ -88,7 +87,7 @@ def wipe_content_worker():
         with dict_lock:  # Ana döngü ile dosya çakışmasını engellemek için kilitler
             content_dict.clear()
             save(content_dict, "content_dict.txt")
-            print(f"\n[{time.strftime('%H:%M:%S')}] [SYSTEM] Content dictionary wiped (60s timer tick).")
+            print("Content dictionary wiped")
 
 # Arka plan thread'ini daemon modunda başlatıyoruz
 wipe_thread = threading.Thread(target=wipe_content_worker, daemon=True)
