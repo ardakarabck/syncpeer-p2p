@@ -124,82 +124,90 @@ print("Chunk Uploader is listening on port 6001")
 
 while True:
     #to accept incoming TCP connection
-    conn, address= cU.accept()
-    ip= address[0]
+    conn, address = cU.accept()
+    ip = address[0]
 
-    #lookin up requester's username from the shared dict
-    ip_to_user= load_ip_to_user()
+    try:
+        #lookin up requester's username from the shared dict
+        ip_to_user = load_ip_to_user()
 
-    if ip in ip_to_user:
-        requester= ip_to_user[ip]
-    else:
-        requester= ip
+        if ip in ip_to_user:
+            requester = ip_to_user[ip]
+        else:
+            requester = ip
 
-    #to receive and parse json
-    msg= conn.recv(4096).decode("utf-8")
-    data= json.loads(msg)
+        #to receive and parse json
+        msg = conn.recv(4096).decode("utf-8")
+        data = json.loads(msg)
 
-    #case 1: diffie-hellman key exchange
-    if "key" in data:
-        received= int(data["key"])    #gettin the key sent by downloader
+        #case 1: diffie-hellman key exchange
+        if "key" in data:
+            received = int(data["key"])   #gettin the key sent by downloader
 
-        our_private= random.randint(2, P - 2)
-        our_public= pow(G, our_private, P)
+            our_private = random.randint(2, P - 2)
+            our_public = pow(G, our_private, P)
 
-        reply= {"key": str(our_public)}
-        conn.send(json.dumps(reply).encode("utf-8"))
+            reply = {"key": str(our_public)}
+            conn.sendall(json.dumps(reply).encode("utf-8"))
 
-        shared_secret= pow(received, our_private, P)
-        des_key_string= str(shared_secret).zfill(8)[:8]
-        des_key_bytes= des_key_string.encode("utf-8")
+            shared_secret = pow(received, our_private, P)
+            des_key_string = str(shared_secret).zfill(8)[:8]
+            des_key_bytes = des_key_string.encode("utf-8")
 
-        #waiting for the actual secured chunk request on the same connection
-        msg2= conn.recv(4096).decode("utf-8")
-        data2= json.loads(msg2)
+            #waiting for the actual secured chunk request on the same connection
+            msg2 = conn.recv(4096).decode("utf-8")
+            data2 = json.loads(msg2)
 
-        chunk_name= data2["requested secured content"]
+            chunk_name = data2["requested secured content"]
 
-        print("Sending", chunk_name, "(secure) to", requester)
+            print("Sending", chunk_name, "(secure) to", requester)
 
-        with open(chunk_name, "rb") as f:
-            raw_bytes= f.read()
+            with open(chunk_name, "rb") as f:
+                raw_bytes = f.read()
 
-        encrypted_bytes= pyDes.des(
-            des_key_bytes,
-            pyDes.ECB,
-            pad=None,
-            padmode=pyDes.PAD_PKCS5
-        ).encrypt(raw_bytes)
+            encrypted_bytes = pyDes.des(
+                des_key_bytes,
+                pyDes.ECB,
+                pad=None,
+                padmode=pyDes.PAD_PKCS5
+            ).encrypt(raw_bytes)
 
-        encoded_chunk_string= base64.b64encode(encrypted_bytes).decode("utf-8")
+            encoded_chunk_string = base64.b64encode(encrypted_bytes).decode("utf-8")
 
-        response= {
-            "chunk name": chunk_name,
-            "encrypted chunk": encoded_chunk_string
-        }
+            response = {
+                "chunk name": chunk_name,
+                "encrypted chunk": encoded_chunk_string
+            }
 
-        conn.send(json.dumps(response).encode("utf-8"))
+            conn.sendall(json.dumps(response).encode("utf-8"))
 
-        log_sent(chunk_name, requester)
+            log_sent(chunk_name, requester)
 
-    # case2: unsecure chunk request
-    elif "requested content" in data:
-        chunk_name= data["requested content"]
+        # case2: unsecure chunk request
+        elif "requested content" in data:
+            chunk_name = data["requested content"]
 
-        print("Sending", chunk_name, "(unsecure) to", requester)
+            print("Sending", chunk_name, "(unsecure) to", requester)
 
-        with open(chunk_name, "rb") as f:
-            raw_bytes= f.read()
+            with open(chunk_name, "rb") as f:
+                raw_bytes = f.read()
 
-        json_safe_string= base64.b64encode(raw_bytes).decode("utf-8")
+            json_safe_string = base64.b64encode(raw_bytes).decode("utf-8")
 
-        response= {
-            "chunk name": chunk_name,
-            "data": json_safe_string
-        }
+            response = {
+                "chunk name": chunk_name,
+                "data": json_safe_string
+            }
 
-        conn.send(json.dumps(response).encode("utf-8"))
+            conn.sendall(json.dumps(response).encode("utf-8"))
 
-        log_sent(chunk_name, requester)
+            log_sent(chunk_name, requester)
 
-    conn.close()
+        else:
+            print("[Error] Unknown request type:", data)
+
+    except Exception as e:
+        print("[Error] Unexpected uploader error:", e)
+
+    finally:
+        conn.close()
