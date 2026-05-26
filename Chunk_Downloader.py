@@ -212,7 +212,7 @@ def create_DH_key(s):
     des_key_bytes = des_key_string.encode('utf-8')          # → b"00000456" (exactly 8 bytes)
 
     # Step 8: return derived key
-    return shared_bytes
+    return des_key_bytes
 
 # ─────────────────────────────────────────────────────────────────
 # TASK 3, 4, 5, 7, 8, 9, 10, 12, 13 — downloadContent
