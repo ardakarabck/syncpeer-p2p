@@ -272,7 +272,7 @@ def downloadContent():
                     encrypted_bytes = base64.b64decode(payload["encrypted chunk"])
                     # Decrypt using pyDes with the exact 8-byte key
                     chunk_bytes = pyDes.des(
-                        des_key_bytes,
+                        des_key,
                         pyDes.ECB,
                         pad=None,
                         padmode=pyDes.PAD_PKCS5
