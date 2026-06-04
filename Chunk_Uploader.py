@@ -93,11 +93,13 @@ import time
 import random
 import base64
 import pyDes
+import os
 
 PORT= 6001
 P= 907   #diffie-hellman prime
 G= 7     #diffie-hellman generator
 
+CHUNK_DIR = input("Enter the folder where your chunk files are(e.g. test_images):").strip()
 
 #helper to load the ip_to_user dict that content discovery saves to file
 def load_ip_to_user():
@@ -162,7 +164,7 @@ while True:
 
             print("Sending", chunk_name, "(secure) to", requester)
 
-            with open(chunk_name, "rb") as f:
+            with open(os.path.join(CHUNK_DIR,chunk_name), "rb") as f:
                 raw_bytes = f.read()
 
             encrypted_bytes = pyDes.des(
@@ -189,7 +191,7 @@ while True:
 
             print("Sending", chunk_name, "(unsecure) to", requester)
 
-            with open(chunk_name, "rb") as f:
+            with open(os.path.join(CHUNK_DIR,chunk_name), "rb") as f:
                 raw_bytes = f.read()
 
             json_safe_string = base64.b64encode(raw_bytes).decode("utf-8")
