@@ -1,3 +1,8 @@
+import socket
+import json
+import time
+import threading
+
 # ============================================================
 # Content_Discovery Tasks
 # ============================================================
@@ -60,11 +65,9 @@
 # Step 1: Run a background timer/thread that fires every 60 seconds.
 # Step 2: On each timer tick: clear the content dictionary entirely.
 # Step 3: Also overwrite the shared content dictionary text file with empty/reset state.
+# NOTE: Spec says 1 minute is a coarse estimate; precise per-entry timestamps not required.
+#       Only recently discovered content (within ~last minute) should be visible to user.
 
-import socket
-import json
-import time
-import threading
 PORT = 6000
 
 # dictionaries to be used by task3,4,and 5
@@ -72,14 +75,17 @@ ip_to_user = {}
 content_dict = {}
 user_to_ip = {}
 
-dict_lock = threading.Lock()     # Thread güvenliği için kilit mekanizması
+# Thread-safety (Veri güvenliği) için kilit mekanizması
+dict_lock = threading.Lock()
 
 # helper function to save a dictionary into a shared text file
 def save(d, filename):
     with open(filename, "w") as f:
         f.write(json.dumps(d, indent=2))
 
-
+# ─────────────────────────────────────────────
+# TASK 7 — Arka Plan Zamanlayıcı İşçisi (Wipe Worker)
+# ─────────────────────────────────────────────
 def wipe_content_worker():
     global content_dict
     while True:
@@ -87,31 +93,32 @@ def wipe_content_worker():
         with dict_lock:  # Ana döngü ile dosya çakışmasını engellemek için kilitler
             content_dict.clear()
             save(content_dict, "content_dict.txt")
-            print("Content dictionary wiped")
+            print(f"\n[{time.strftime('%H:%M:%S')}] [SYSTEM] Content dictionary wiped (60s timer tick).")
 
 # Arka plan thread'ini daemon modunda başlatıyoruz
 wipe_thread = threading.Thread(target=wipe_content_worker, daemon=True)
 wipe_thread.start()
 
-# task1 
+# task1
 cD = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-cD.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  
+# İşletim sisteminin portu hemen serbest bırakması için SO_REUSEADDR aktifleştirildi
+cD.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 cD.bind(("", PORT))
 
 print("Content Discovery is listening on port 6000")
 
 while True:
     try:
-        msg, address = cD.recvfrom(4096)
+        msg, address = cD.recvfrom(1024)
         ip = address[0]                                 # task2 Step 3
         msg = msg.decode("utf-8")                       # task2 Step 1
         data = json.loads(msg)                          # task2 Step 2
-        username = data["username"]               
-        chunks = data["chunks"]                      
+        username = data["username"]
+        chunks = data["chunks"]
 
         # Paylaşılan kaynakları (Sözlükler ve Dosyalar) güncellerken kilidi aktif ediyoruz
         with dict_lock:
-            ip_to_user[ip] = username                                # task3 
+            ip_to_user[ip] = username                                # task3
             save(ip_to_user, "ip_to_user.txt")
 
             for chunk in chunks:                                      # task4
@@ -128,9 +135,11 @@ while True:
 
             print(username, ":", ", ".join(chunks))          # task6
 
-    except json.JSONDecodeError:           # ignore messages that are not valid JSON
+    except json.JSONDecodeError:
+        # Ağdaki yabancı paketlerin JSON yapısını bozamaması için koruma klonozolojisi
         pass
-    except KeyError:                       # ignore JSON messages that do not have username or chunks
+    except KeyError:
+        # Şartnameye uymayan eksik verili paket koruması
         pass
     except Exception as e:
         print(f"[Error] Unexpected exception in main loop: {e}")
