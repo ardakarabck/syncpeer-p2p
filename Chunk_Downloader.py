@@ -21,7 +21,7 @@
 # Step 4: A content name is included if at least ONE of its chunks appears
 #         in any node in the network — all 3 chunks being present is NOT required.
 # Step 5: Print the deduplicated content name list to console.
-    
+
 # ─────────────────────────────────────────────────────────────────
 # TASK 3 — Req 2.3.0-C: Initiate Download
 # ─────────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@
 # Step 2: Retrieve the list of usernames who have that chunk.
 # Step 3: Use the username-to-IP dict to resolve the first username to an IP address.
 # Step 4: That IP is the first download attempt target.
-    
+
 # ─────────────────────────────────────────────────────────────────
 # TASK 5 — Req 2.3.0-E: Open TCP Session & Display UI Message
 # ─────────────────────────────────────────────────────────────────
@@ -122,11 +122,13 @@
 # NOTE: des_key_bytes must be a byte array derived from the DH shared integer, not int.
 
 import json
-from socket import *
+import socket
 import datetime
 import base64
 import pyDes
 import random
+import os
+
 ## Global variables ##
 
 Global_Chunk_Num = 3 # flower_(1,2,3).png
@@ -136,14 +138,28 @@ TCP_PORT = 6001
 DH_p = 907
 DH_g = 7
 
+CHUNK_DIR = "test_images"
+# Create a CHUNK_DIR folder if not exists (for error handling)
+if not os.path.exists(CHUNK_DIR):
+    os.makedirs(CHUNK_DIR)
+
 # Return a dictionary from JSON syntax'd file with error handling
 def JSON_to_dict(filename):
     try:
         with open(filename, "r", encoding="utf-8") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"Error reading file: {e}")
+        print(f"Error reading file{filename}: {e}")
         return {}
+
+def recv_all(sock):
+   parts = []
+   while True:
+       part = sock.recv(4096)
+       if not part:
+           break
+       parts.append(part)
+   return b"".join(parts)
 
 # ─────────────────────────────────────────────────────────────────
 # TASK 11 — Logging helpers
@@ -181,10 +197,14 @@ def viewContent():
     Chunk_Dict = JSON_to_dict("content_dict.txt")   # re-read fresh from disk
     uniqueContent = []                               # fix: was {}, must be a list
     for chunk_key in Chunk_Dict:
-        specificChunk = chunk_key.split('.')[0]      # forest_1.png -> forest
-        if specificChunk not in uniqueContent:
-            uniqueContent.append(specificChunk)
+        specificChunk = chunk_key.split('_')[0] # forest_1.png -> forest
+        content_name = specificChunk + ".png"
+        if content_name not in uniqueContent:
+            uniqueContent.append(content_name)
     print("Here is the list of available content:\n")
+    if not uniqueContent:
+        print("No content found.\n")
+        return
     for j in range(len(uniqueContent)):
         print(f"  {j+1}) {uniqueContent[j]}")
     print()
@@ -198,7 +218,7 @@ def create_DH_key(s):
 
     # Step 3: send our public value to uploader
     public_val = pow(DH_g, X, DH_p)             # g^X mod p
-    s.send(json.dumps({"key": str(public_val)}).encode())
+    s.sendall(json.dumps({"key": str(public_val)}).encode())
 
     # Step 4 & 5: receive uploader's public value Y
     response = s.recv(1024).decode()
@@ -262,10 +282,10 @@ def downloadContent():
                     des_key = create_DH_key(s)
                     # TASK 6 Step 9 — send secure request
                     request = json.dumps({"requested secured content": chunk})
-                    s.send(request.encode())
+                    s.sendall(request.encode())
 
                     # TASK 13 — receive and decrypt
-                    data = s.recv(65536)
+                    data = recv_all(s)
                     if not data:
                         raise Exception("Empty response")
                     payload = json.loads(data.decode('utf-8'))
@@ -281,30 +301,34 @@ def downloadContent():
                 else:
                     # TASK 7 — unsecure request
                     request = json.dumps({"requested content": chunk})
-                    s.send(request.encode())
+                    s.sendall(request.encode())
 
                     # receive raw bytes
-                    data = s.recv(65536)
+                    data = recv_all(s)
                     if not data:
                         raise Exception("Empty response")
-                    chunk_bytes = data
+                    payload = json.loads(data.decode('utf-8'))
+                    chunk_bytes = base64.b64decode(payload["data"])
 
                 # Save chunk to file
+                chunk_path = os.path.join(CHUNK_DIR,chunk)
+
                 with open(chunk, "wb") as f:
                     f.write(chunk_bytes)
 
-                print(f"  ✓ '{chunk}' downloaded successfully from '{username}'")
+                print(f"  ✓ '{chunk}' downloaded successfully from '{username}' and saved to {CHUNK_DIR}")
 
                 # TASK 11 — log success
                 logChunk(chunk, username, ip)
 
-                s.close()               # TASK 10 — close socket after each chunk
+                s.close()               # TASK 10 — close socket after each chunkto {CHUNK_DIR}
                 downloaded = True
                 break                   # TASK 8 — success, stop trying other peers
 
             except Exception as e:
                 # TASK 8 — this peer failed, try next
                 print(f"Chunk {chunk} cannot be downloaded from {username}")
+                print("[DEBUG ERROR]", e)
                 try:
                     s.close()           # TASK 10 — always close even on failure
                 except:
@@ -324,9 +348,10 @@ def downloadContent():
 # TASK 9 — Merge helper (provided externally, placeholder here)
 # ─────────────────────────────────────────────────────────────────
 def merge(chunk_files, output_name):
-    with open(output_name, "wb") as out: # creates a final output file named forest.png 
+    with open(output_name, "wb") as out: # creates a final output file named forest.png
         for chunk_file in chunk_files:
-            with open(chunk_file, "rb") as f: # read every forest_i.png files and append them to forest.png and also doesn't delete the chunks as determined in specs 
+            chunk_path = os.path.join(CHUNK_DIR, chunk_file)
+            with open(chunk_file, "rb") as f: # read every forest_i.png files and append them to forest.png and also doesn't delete the chunks as determined in specs
                 out.write(f.read())
 
 # ─────────────────────────────────────────────────────────────────
@@ -354,7 +379,7 @@ def selectChoice(): # TASK 1 (we can create a main function as well)
             print("Fetching your history...\n")
             fetchHistory()
         # TASK 12 — return to menu after each action
-        print("\nChoose an option:\n 1. View Contents\n 2. Download Content\n 3. History\n Enter 'quit' to stop: ")   
+        print("\nChoose an option:\n 1. View Contents\n 2. Download Content\n 3. History\n Enter 'quit' to stop: ")
 
 # ─────────────────────────────────────────────────────────────────
 # Entry point
