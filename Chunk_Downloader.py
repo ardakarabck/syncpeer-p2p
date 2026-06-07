@@ -311,9 +311,9 @@ def downloadContent():
                     chunk_bytes = base64.b64decode(payload["data"])
 
                 # Save chunk to file
-                chunk_path = os.path.join(CHUNK_DIR,chunk)
+                chunk_path = os.path.join(CHUNK_DIR, chunk)
 
-                with open(chunk, "wb") as f:
+                with open(chunk_path, "wb") as f:
                     f.write(chunk_bytes)
 
                 print(f"  ✓ '{chunk}' downloaded successfully from '{username}' and saved to {CHUNK_DIR}")
@@ -351,7 +351,7 @@ def merge(chunk_files, output_name):
     with open(output_name, "wb") as out: # creates a final output file named forest.png
         for chunk_file in chunk_files:
             chunk_path = os.path.join(CHUNK_DIR, chunk_file)
-            with open(chunk_file, "rb") as f: # read every forest_i.png files and append them to forest.png and also doesn't delete the chunks as determined in specs
+            with open(chunk_path, "rb") as f: # read every forest_i.png files and append them to forest.png and also doesn't delete the chunks as determined in specs
                 out.write(f.read())
 
 # ─────────────────────────────────────────────────────────────────
